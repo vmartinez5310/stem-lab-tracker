@@ -5,6 +5,7 @@ from app.core.database import engine, Base
 from app.models.models import User, Application, UserAppRole
 from app.models import finance_vaults
 from app.models import finance_transactions
+from app.models import finance_planning
 
 # Crea las tablas si no existen
 Base.metadata.create_all(bind=engine)
@@ -25,7 +26,9 @@ async def root():
 from app.api.auth import router as auth_router
 from app.api.finance import router as finance_router
 from app.api.transactions import router as transactions_router
+from app.api.planning import router as planning_router
 
 app.include_router(auth_router)
 app.include_router(finance_router)
 app.include_router(transactions_router)
+app.include_router(planning_router)
