@@ -3,6 +3,7 @@ import redis
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.models.models import User, Application, UserAppRole
+from app.models import finance_vaults
 
 # Crea las tablas si no existen
 Base.metadata.create_all(bind=engine)
@@ -21,5 +22,7 @@ async def root():
     return {"message": "IAM Service Online", "redis_connected": redis_status}
 
 from app.api.auth import router as auth_router
+from app.api.finance import router as finance_router
 
 app.include_router(auth_router)
+app.include_router(finance_router)
