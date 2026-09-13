@@ -7,13 +7,13 @@ from app.models.finance_transactions import Category, TransactionType
 db = SessionLocal()
 
 # 1. Inyectar Usuario
-user = User(email="ingeniero@stemlab.com", phone_number="5551234567")
+user = User(email="ingeniero+QA1@stemlab.com", phone_number="5551234568")
 db.add(user)
 db.commit()
 db.refresh(user)
 
 # 2. Inyectar Institución
-inst = Institution(name="Banco Central", type=InstitutionType.BANK)
+inst = Institution(name="BBVA", type=InstitutionType.BANK)
 db.add(inst)
 db.commit()
 db.refresh(inst)
