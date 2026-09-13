@@ -7,6 +7,7 @@ from app.models import finance_vaults
 from app.models import finance_transactions
 from app.models import finance_planning
 from app.models import finance_obligations
+from app.models import finance_profiles
 
 # Crea las tablas si no existen
 Base.metadata.create_all(bind=engine)
@@ -29,9 +30,11 @@ from app.api.finance import router as finance_router
 from app.api.transactions import router as transactions_router
 from app.api.planning import router as planning_router
 from app.api.obligations import router as obligations_router
+from app.api.profiles import router as profiles_router
 
 app.include_router(auth_router)
 app.include_router(finance_router)
 app.include_router(transactions_router)
 app.include_router(planning_router)
 app.include_router(obligations_router)
+app.include_router(profiles_router)

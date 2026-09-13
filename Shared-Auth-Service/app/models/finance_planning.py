@@ -18,8 +18,10 @@ class BudgetPlan(Base):
     __tablename__ = "budget_plans"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    month = Column(Date, nullable=False) # Ej. 2026-10-01
+    month = Column(Date, nullable=False) 
     total_limit = Column(Numeric(12, 2), nullable=False)
+    # INYECTA ESTA LÍNEA:
+    total_consumed = Column(Numeric(12, 2), default=0.00)
 
 class BudgetItem(Base):
     __tablename__ = "budget_items"
@@ -27,7 +29,8 @@ class BudgetItem(Base):
     budget_id = Column(UUID(as_uuid=True), ForeignKey("budget_plans.id", ondelete="CASCADE"), nullable=False)
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
     limit_amount = Column(Numeric(12, 2), nullable=False)
-
+    # INYECTA ESTA LÍNEA:
+    consumed_amount = Column(Numeric(12, 2), default=0.00)
 # Metas de Ahorro
 class SavingsGoal(Base):
     __tablename__ = "savings_goals"

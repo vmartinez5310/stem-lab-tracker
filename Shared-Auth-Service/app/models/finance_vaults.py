@@ -1,19 +1,14 @@
 import uuid
 import enum
+from sqlalchemy import Enum as SQLEnum, Numeric
 from sqlalchemy import Column, String, Numeric, Integer, ForeignKey, Enum, text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 
-# Enums para normalizar los datos en PostgreSQL
-class InstitutionType(enum.Enum):
-    BANK = "BANK"
-    SOFIPO = "SOFIPO"
-    CRYPTO = "CRYPTO"
-
 class AccountType(enum.Enum):
-    CHECKING = "CHECKING"
-    SAVINGS = "SAVINGS"
-    INVESTMENT = "INVESTMENT"
+    CASH = "CASH"
+    DEBIT = "DEBIT"
+    CREDIT = "CREDIT"
 
 class PaymentMethodType(enum.Enum):
     DEBIT = "DEBIT"
@@ -23,7 +18,6 @@ class InstitutionType(enum.Enum):
     BANK = "BANK"
     SOFIPO = "SOFIPO"
     CRYPTO = "CRYPTO"
-    DEPARTMENTAL = "DEPARTMENTAL" # Nuevo soporte para tiendas
 # Catálogo Maestro (Ej. Nu, BBVA)
 class Institution(Base):
     __tablename__ = "institutions"
@@ -35,13 +29,16 @@ class Institution(Base):
 class Account(Base):
     __tablename__ = "accounts"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # Vinculación estricta a tu módulo IAM centralizado
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     institution_id = Column(UUID(as_uuid=True), ForeignKey("institutions.id"), nullable=False)
     name = Column(String(100), nullable=False)
-    type = Column(Enum(AccountType), nullable=False)
-    balance = Column(Numeric(12, 2), default=0.00)
+    account_type = Column(SQLEnum(AccountType), nullable=False, default=AccountType.DEBIT)
+    current_balance = Column(Numeric(12, 2), default=0.00)
+    credit_limit = Column(Numeric(12, 2), nullable=True)
+    frozen_credit = Column(Numeric(12, 2), default=0.00)
     created_at = Column(TIMESTAMP, server_default=text('now()'))
+    currency_code = Column(String(3), nullable=False, default="MXN")
+    exchange_rate = Column(Numeric(12, 6), nullable=False, default=1.0)
 
 # Reglas de los plásticos y ciclos de crédito
 # Actualización del Plástico

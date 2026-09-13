@@ -44,3 +44,11 @@ class Transaction(Base):
     amount = Column(Numeric(12, 2), nullable=False)
     description = Column(String(255), nullable=True)
     transaction_date = Column(TIMESTAMP, server_default=text('now()'))
+
+    receipt_url = Column(String(255), nullable=True)
+    attachments_data = Column(String, nullable=True)  # JSON string for attachments metadata
+
+    currency_code = Column(String(3), nullable=False, default="MXN")
+    exchange_rate = Column(Numeric(12, 6), nullable=False, default=1.0)
+
+    external_sync_id = Column(String(100), unique=True, nullable=True)
