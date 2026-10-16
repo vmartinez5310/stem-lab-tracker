@@ -1,14 +1,26 @@
-from pydantic_settings import BaseSettings
+from functools import lru_cache
+from typing import List
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
-    # Pydantic buscará estas variables exactas en tu archivo .env
-    DATABASE_URL: str
-    REDIS_URL: str
-    SECRET_KEY: str
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    class Config:
-        # Aquí le decimos dónde está el archivo de secretos
-        env_file = ".env"
+    DATABASE_URL: str = "postgresql://stem:stem_secret@localhost:5432/stem_iam"
+    REDIS_URL: str = "redis://localhost:6379/0"
+    SECRET_KEY: str = "change-me-shared-secret"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-# Creamos una instancia para importar 'settings' en otros archivos
-settings = Settings()
+    @property
+    def cors_list(self) -> List[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

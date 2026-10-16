@@ -1,25 +1,27 @@
-import redis
+"""OTP storage — uses in-memory dict when Redis is unavailable (demo mode)."""
 import random
-from app.core.config import settings
+import time
+from typing import Dict, Tuple
 
-redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+_store: Dict[str, Tuple[str, float]] = {}  # email -> (otp, expires_at)
+TTL = 300
+
 
 def generate_otp(email: str) -> str:
-    # Generamos un c`ódigo OTP de 6 dígitos `
     otp = f"{random.randint(100000, 999999)}"
-
-    # Lo guardamos en Redis: clave = email, valor = otp
-    # ex=300 significa que expira en 5 minutos (300 segundos)
-    redis_client.set(name=f"otp:{email}", value=otp, ex=300)
-
+    _store[email] = (otp, time.time() + TTL)
     return otp
 
-def verify_otp(email: str, otp: str):
-    #Buscamos el código guardado
-    stored_otp = redis_client.get(name=f"otp:{email}")
 
-    #Si existe y coincide, es válido
-    if stored_otp and stored_otp == otp:
-        redis_client.delete(f"otp:{email}")  # Eliminamos el OTP después de usarlo
+def verify_otp(email: str, otp: str) -> bool:
+    entry = _store.get(email)
+    if not entry:
+        return False
+    stored, expires = entry
+    if time.time() > expires:
+        _store.pop(email, None)
+        return False
+    if stored == otp:
+        _store.pop(email, None)
         return True
     return False
