@@ -1,16 +1,14 @@
-# Entornos virtuales de Python
-venv/
-env/
 __pycache__/
-
-# Node / Frontend
+*.py[cod]
+.venv/
+venv/
+.env
+*.db
 node_modules/
 dist/
 build/
-
-# Variables de entorno (¡NUNCA SUBIR ESTO A GITHUB!)
-.env
-
-# Archivos del sistema operativo
 .DS_Store
-Thumbs.db
+.idea/
+.vscode/
+*.log
+pgdata/
