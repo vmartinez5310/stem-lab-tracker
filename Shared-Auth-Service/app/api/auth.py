@@ -1,55 +1,83 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session, joinedload
+
 from app.core.database import get_db
-from app.models.models import User
-from app.models.schemas import UserCreate, UserResponse, TokenResponse
-from app.core.security import create_access_token
 from app.core.redis_service import generate_otp, verify_otp
+from app.core.security import create_access_token, get_current_payload
+from app.models.models import Application, User, UserAppRole
+from app.models.schemas import TokenResponse, UserCreate, UserResponse, UserAppsResponse
 
-router = APIRouter(prefix="/auth", tags=["Autenticación"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=UserResponse)
-def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    # 1. Verificar si el usuario ya existe
-    db_user = db.query(User).filter(User.email == user_data.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
-    
-    # 2. Crear nuevo usuario (UUID se genera solo)
-    new_user = User(
-        email=user_data.email,
-        phone_number=user_data.phone_number
+
+def _user_app_names(db: Session, user_id) -> list[str]:
+    rows = (
+        db.query(Application.app_name)
+        .join(UserAppRole, UserAppRole.app_id == Application.id)
+        .filter(UserAppRole.user_id == user_id, Application.status == "active")
+        .all()
     )
-    
-    db.add(new_user)
+    return [r[0] for r in rows]
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user_data: UserCreate, db: Annotated[Session, Depends(get_db)]) -> User:
+    if db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = User(
+        email=user_data.email,
+        phone_number=user_data.phone_number,
+        full_name=user_data.full_name,
+    )
+    db.add(user)
     db.commit()
-    db.refresh(new_user)
-    return new_user
+    db.refresh(user)
+    return user
 
-# 1. El usuario pide su código OTP (Aquí enviaríamos el correo en el futuro)
+
 @router.post("/request-otp")
-def request_otp(email: str, db: Session = Depends(get_db)):
-    # Verificar que el email esté registrado
-    db_user = db.query(User).filter(User.email == email).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Email no registrado")
-    
-    # Generar y guardar OTP en Redis
+def request_otp(email: str = Query(...), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not registered")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="User inactive")
     otp = generate_otp(email)
-    
-    # POR AHORA: Lo devolvemos en la respuesta para poder probar
-    # EN PRODUCCIÓN: Esto se envía por email y aquí solo devolvemos "Correo enviado"
-    return {"message": "Código enviado", "dev_otp": otp}
+    return {"message": "OTP sent", "dev_otp": otp}
 
-# 2. El usuario entrega el código y SI ES CORRECTO, le damos un token JWT
+
 @router.post("/verify-otp", response_model=TokenResponse)
-def verify_login_otp(email: str, otp: str, db: Session = Depends(get_db)):
+def verify_otp_login(
+    email: str = Query(...),
+    otp: str = Query(...),
+    db: Session = Depends(get_db),
+):
     if not verify_otp(email, otp):
-        raise HTTPException(status_code=400, detail="Código inválido o expirado")
-    
-    db_user = db.query(User).filter(User.email == email).first()
-    
-    token_data = {"sub": str(db_user.id), "email": db_user.email}
-    access_token = create_access_token(data=token_data)
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=404, detail="User not found or inactive")
+
+    user.is_verified = True
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
+    apps = _user_app_names(db, user.id)
+    token = create_access_token(user_id=user.id, email=user.email, apps=apps)
+    return TokenResponse(access_token=token, apps=apps)
+
+
+@router.get("/me", response_model=UserAppsResponse)
+def me(
+    payload: Annotated[dict, Depends(get_current_payload)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    user = db.get(User, payload["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    apps = _user_app_names(db, user.id)
+    return UserAppsResponse(user_id=user.id, email=user.email, apps=apps)
