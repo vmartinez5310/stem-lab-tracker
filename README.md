@@ -8,17 +8,17 @@ One identity → many STEM practice layers + **Financial Engine** (financial lit
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    Shared-Auth-Service (IAM)                │
-│  Users · Applications · UserAppRoles · OTP · JWT            │
-│  Port 8001                                                  │
+```text
+┌────────────────────────────────────────────────────────────────┐
+│                    Shared-Auth-Service (IAM)                   │
+│  Users · Applications · UserAppRoles · OTP · JWT               │
+│  Port 8001                                                     │
 └──────────────────────────────┬─────────────────────────────────┘
-                            │ JWT (sub=user_uuid, email, apps)
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-   Science App        Technology App     Financial Engine
-   (future)           (future)           Port 8000 + 5173
+                               │ JWT (sub=user_uuid, email, apps)
+           ┌───────────────────┼───────────────────┐
+           ▼                   ▼                   ▼
+      Science App        Technology App     Financial Engine
+      (future)           (future)           Port 8000 + 5173
 ```
 
 ### Multi-layer OAuth model
