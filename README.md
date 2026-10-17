@@ -52,14 +52,14 @@ docker compose up -d db redis
 
 # 2. Shared Auth
 cd Shared-Auth-Service
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload --port 8001
 
 # 3. Financial Engine backend
 cd ../apps/financial-engine/backend
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload --port 8000
